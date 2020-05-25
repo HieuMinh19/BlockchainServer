@@ -41,10 +41,11 @@ def register(request):
     private_key = generator_class.generate_key()
     wallet = BitcoinWallet()
     public_key = wallet.private_to_public(private_key)
-    print(public_key)
+    address = wallet.public_to_address(public_key)
     response = {
         'private_key': private_key,
-        'public_key': str(public_key)
+        'public_key': str(public_key),
+        'address': str(address)
     }
     return JsonResponse(response)
 

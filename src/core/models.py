@@ -77,6 +77,11 @@ class BitcoinWallet:
     def __init__(self):
         super().__init__()
 
+    def generate_address(self, private_key):
+        public_key = BitcoinWallet.private_to_public(self, private_key)
+        address = BitcoinWallet.public_to_address(self, public_key)
+        return address
+    
     def private_to_public(self, private_key):
         private_key_bytes = codecs.decode(private_key, 'hex')
         # Get ECDSA public key
@@ -87,3 +92,49 @@ class BitcoinWallet:
         bitcoin_byte = b'04'
         public_key = bitcoin_byte + key_hex
         return public_key
+
+
+    def public_to_address(self, public_key):
+        public_key_bytes = codecs.decode(public_key, 'hex')
+        # Run SHA256 for the public key
+        sha256_bpk = hashlib.sha256(public_key_bytes)
+        sha256_bpk_digest = sha256_bpk.digest()     #tranfer to byte type
+        # Run ripemd160 for the SHA256
+        ripemd160_bpk = hashlib.new('ripemd160')
+        ripemd160_bpk.update(sha256_bpk_digest)
+        ripemd160_bpk_digest = ripemd160_bpk.digest()
+        ripemd160_bpk_hex = codecs.encode(ripemd160_bpk_digest, 'hex')
+        # Add network byte
+        network_byte = b'00'
+        network_bitcoin_public_key = network_byte + ripemd160_bpk_hex
+        network_bitcoin_public_key_bytes = codecs.decode(network_bitcoin_public_key, 'hex')
+        # Double SHA256 to get checksum
+        sha256_nbpk = hashlib.sha256(network_bitcoin_public_key_bytes)
+        sha256_nbpk_digest = sha256_nbpk.digest()
+        sha256_2_nbpk = hashlib.sha256(sha256_nbpk_digest)
+        sha256_2_nbpk_digest = sha256_2_nbpk.digest()
+        sha256_2_hex = codecs.encode(sha256_2_nbpk_digest, 'hex')
+        checksum = sha256_2_hex[:8]
+        # Concatenate public key and checksum to get the address
+        address_hex = (network_bitcoin_public_key + checksum).decode('utf-8')
+        wallet = BitcoinWallet.base58(self, address_hex)
+        return wallet
+
+    def base58(self, address_hex):
+        alphabet = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
+        b58_string = ''
+        # Get the number of leading zeros and convert hex to decimal
+        leading_zeros = len(address_hex) - len(address_hex.lstrip('0'))
+        # Convert hex to decimal
+        address_int = int(address_hex, 16)
+        # Append digits to the start of string
+        while address_int > 0:
+            digit = address_int % 58
+            digit_char = alphabet[digit]
+            b58_string = digit_char + b58_string
+            address_int //= 58
+        # Add '1' for each 2 leading zeros
+        ones = leading_zeros // 2
+        for one in range(ones):
+            b58_string = '1' + b58_string
+        return b58_string

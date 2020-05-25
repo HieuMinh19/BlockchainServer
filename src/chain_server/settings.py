@@ -29,6 +29,8 @@ ALLOWED_HOSTS = []
 
 
 # Application definition
+ALLOWED_HOSTS = ['XXX.iptime.org', 'localhost', '127.0.0.1', '192.168.1.30']
+
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -37,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
 ]
 
 MIDDLEWARE = [

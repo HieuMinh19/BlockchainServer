@@ -73,6 +73,7 @@ class KeyGenerator:
         self.prng_state = random.getstate()
         return big_int
 
+
 class BitcoinWallet:
     def __init__(self):
         super().__init__()
@@ -138,3 +139,82 @@ class BitcoinWallet:
         for one in range(ones):
             b58_string = '1' + b58_string
         return b58_string
+class Blockchain:
+    difficulty = 2
+    def __init__(self):
+        """
+        Constructor của class `Blockchain`.
+        """
+        self.chain = [] 
+        self.createGenesisBlock()
+
+    def createGenesisBlock(self):
+        GenesisBlock = Block(0, "0", 1465154705, "my genesis block!!", "816534932c2b7154836da6afc367695e6337db8a921823784c14378abed4f7d7", 0)
+        self.chain.append(GenesisBlock)
+
+    def getLatestBlock(self):
+        return self.chain[-1]
+
+    def calculateHash(self, index, previousHash, timestamp, data, nonce):
+        data = (str(index) + previousHash + 
+        str(timestamp) + data + str(nonce)).encode('utf-8')
+        
+        return sha256(data).hexdigest()
+
+    def generateNextBlock(self, blockData):
+        prevBlock = self.getLatestBlock()
+        nextIndex = prevBlock.index + 1
+        timestamp = int(time.time()) 
+        #nextHash = self.calculateHash(nextIndex, prevBlock.hashData, timestamp, blockData)
+        #nextHash = 
+        return self.proof_of_work(nextIndex, prevBlock.hashData, timestamp, blockData, nonce=0)
+
+    def proof_of_work(self, index, previousHash, timestamp, data, nonce):
+        """
+        Hàm thử các giá trị khác nhau của nonce để lấy giá trị băm thỏa mãn
+        """
+        nonce = 0 
+        computed_hash = self.calculateHash(index, previousHash, timestamp, data, nonce)
+        while not computed_hash.startswith('0' * self.difficulty):
+            nonce += 1
+            computed_hash = self.calculateHash(index, previousHash, timestamp, data, nonce)
+
+        return Block(index, previousHash, timestamp, data, computed_hash, nonce)
+
+    def display_chain(self):
+        for block in self.chain:
+            print("index: " + str(block.index))
+            print("Transaction " + block.transaction)
+
+class Block:
+    def __init__(self, index, previousHash, timestamp, transaction, hashData, nonce):
+        """
+        Constructor cho một `Block` class.
+        :param index: Chỉ số ID duy nhất của một block.
+        :param previousHash: Chỉ số khối trước đó.
+        :param timestamp: Thời gian tạo block.(unix timestamp)
+        :param transaction: list v_in và v_out dạng json
+        :param hashdata: hash của block
+        :param nonce: hằng số nonce của riêng block
+        """
+        self.index = index
+        self.previousHash = previousHash
+        self.timestamp = timestamp
+        self.transaction = transaction
+        self.hashData = hashData
+        self.nonce = nonce
+
+    def calculateHashForBlock(self):
+        data = (str(self.index) + self.previousHash + 
+        str(self.timestamp) + self.transaction + str(self.nonce)).encode('utf-8')
+        self.hashData = sha256(data).hexdigest()
+        return self.hashData
+
+class UnspentTransactionOutput:
+    def __init__(self, block_hash, index):
+        """
+        block_hash: hashData of block has transaction unspent
+        index: index of v_out in transaction
+        """
+        self.block_hash = block_hash
+        self.index = index

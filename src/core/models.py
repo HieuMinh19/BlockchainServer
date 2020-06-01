@@ -9,7 +9,7 @@ import secrets
 import codecs
 import hashlib
 import ecdsa
-
+import eth_keys, os
 class KeyGenerator:
     def __init__(self):
         self.POOL_SIZE = 256
@@ -93,7 +93,6 @@ class BitcoinWallet:
         public_key = bitcoin_byte + key_hex
         return public_key
 
-
     def public_to_address(self, public_key):
         public_key_bytes = codecs.decode(public_key, 'hex')
         # Run SHA256 for the public key
@@ -138,6 +137,21 @@ class BitcoinWallet:
         for one in range(ones):
             b58_string = '1' + b58_string
         return b58_string
+
+    #-------------using eth_keys, os library-------------
+    def generate_private_key(self):
+        # Generate the private + public key pair (using the secp256k1 curve)
+        signerPrivKey = eth_keys.keys.PrivateKey(os.urandom(32))
+        return signerPrivKey
+
+    def generate_public_key(self, private_key):
+        return (private_key.public_key)
+
+    def generate_signature(self, private_key, msg):
+        signature = private_key.sign_msg(msg)
+        return signature
+    #-------------end using eth_keys, os library-------------
+
 class Blockchain:
     difficulty = 2
     def __init__(self):
@@ -210,8 +224,27 @@ class Block:
         return self.hashData
 
 
-class OutputInfo:
-    def __init__(self, tx_hash, tx_index, value):
+class TransactionInput:
+    def __init__(self, tx_hash, tx_index, script_sig):
+        """
+        tx_hash: ID giao dịch dùng để chi tiêu
+        tx_index: index của output trong array
+        script_sig: chữ kí chứng nhận quyền sở hữu
+        sequence: được dùng cho thời gian hóa hoặc bị vô hiệu hóa
+        (A Unix timestamp or block number) -> có thể sẽ bỏ trường này. 
+        """
         self.tx_hash = tx_hash
         self.tx_index = tx_index
+        self.script_sig = script_sig
+        #self.sequence = sequence
+
+class TransactionOutput:
+    def __init__(self, value, tx_index, script_sig):
+        """
+        value: giá trị cổ phiếu giao dịch
+        tx_index: index của transaction trong mảng
+        script_sign: kịch bản khóa.
+        """
         self.value = value
+        self.tx_index = tx_index
+        self.script_sign = script_sig

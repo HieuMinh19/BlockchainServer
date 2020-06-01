@@ -10,7 +10,6 @@ import codecs
 import hashlib
 import ecdsa
 
-
 class KeyGenerator:
     def __init__(self):
         self.POOL_SIZE = 256
@@ -210,11 +209,9 @@ class Block:
         self.hashData = sha256(data).hexdigest()
         return self.hashData
 
-class UnspentTransactionOutput:
-    def __init__(self, block_hash, index):
-        """
-        block_hash: hashData of block has transaction unspent
-        index: index of v_out in transaction
-        """
-        self.block_hash = block_hash
-        self.index = index
+
+class OutputInfo:
+    def __init__(self, tx_hash, tx_index, value):
+        self.tx_hash = tx_hash
+        self.tx_index = tx_index
+        self.value = value

@@ -1,11 +1,11 @@
 from django.contrib import admin
 from django.conf.urls import url
 from django.urls import path
-from core.views import test_view, register
+from core.views import  register, get_last_block
 
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    url(r'^home/$', test_view, name='TestView'),
     url(r'^register/$', register, name='register_user'),
+    url(r'^chain/get-last-block/$', get_last_block, name='chain.last_block'),
 ]

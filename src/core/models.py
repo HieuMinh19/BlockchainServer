@@ -199,7 +199,14 @@ class Blockchain:
             print("index: " + str(block.index))
             print("Transaction " + block.transaction)
 
-class Block:
+class Block(models.Model):
+    index = models.IntegerField()
+    previousHash = models.CharField(max_length=255)
+    timestamp = models.IntegerField()
+    transaction = models.TextField()
+    hashData = models.CharField(_("hash of Block"), max_length=255)
+    nonce = models.IntegerField()
+
     def __init__(self, index, previousHash, timestamp, transaction, hashData, nonce):
         """
         Constructor cho một `Block` class.

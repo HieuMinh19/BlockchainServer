@@ -1,0 +1,6 @@
+[client]
+database = blockchain
+user = root
+password =
+port = 3306
+default-character-set = utf8

@@ -149,39 +149,17 @@ class Block:
         str(self.timestamp) + self.transaction + str(self.nonce)).encode('utf-8')
         self.hashData = sha256(data).hexdigest()
         return self.hashData
-
-class TransactionInput:
-    def __init__(self, tx_hash, tx_index, script_sig):
-        """
-        tx_hash: ID giao dịch dùng để chi tiêu
-        tx_index: index của output trong array
-        script_sig: chữ kí chứng nhận quyền sở hữu
-        sequence: được dùng cho thời gian hóa hoặc bị vô hiệu hóa
-        (A Unix timestamp or block number) -> có thể sẽ bỏ trường này. 
-        """
-        self.tx_hash = tx_hash
-        self.tx_index = tx_index
-        self.script_sig = script_sig
-        #self.sequence = sequence
-
-class TransactionOutput:
-    def __init__(self, value, tx_index, script_sig):
-        """
-        value: giá trị cổ phiếu giao dịch
-        tx_index: index của transaction trong mảng
-        script_sign: kịch bản khóa.
-        """
-        self.value = value
-        self.tx_index = tx_index
-        self.script_sign = script_sig
-
+    
     '''
-    get all un spend trans_output by signature
+    get largest un spend trans_output by signature
     @param eth_object signature
     @param String msg
+    @param integer amount
+    @return TransactionOutput object or NULL
     '''
-    def get_by_signature(self, signature, msg):
+    def get_output_by_sign(self, signature, msg, amount):
         publicKey = signature.recover_public_key_from_msg(msg)
+        strPublicKey = str(publicKey)[2:]
         db_ = MySQLdb.connect(
             host="localhost", 
             port=3306, 
@@ -189,8 +167,72 @@ class TransactionOutput:
             passwd="", 
             db="blockchain")
         db_cursor = db_.cursor()
-        sql = "SELECT * FROM trans_output WHERE public_key ="
-        sql += publicKey[2:].encode()
+        sql = 'SELECT * FROM trans_output WHERE public_key = '
+        sql += '"'
+        sql += strPublicKey
+        sql += '"'
+        sql +=  " AND amount > "
+        sql += str(amount)
+        sql += " LIMIT 1"
         db_cursor.execute(sql)
         result = db_cursor.fetchall()
+        if(db_cursor.rowcount):    
+            for row in result:
+                #id = row[0]
+                totalAmount = row[1]
+                txIndex = row[2]
+                publicKey = row[3]
+                blockHash = row[4]
+
+            transOutput = TransactionOutput(totalAmount, txIndex, publicKey, blockHash)
+            return transOutput
+        else: 
+            return None
+
+    '''
+    create array transaction output and return uspend amount
+    @param: transOutput TransactionOutput Object
+    @param: float -> cost: total amount using
+    @param: String -> publicKey
+    @param: String ->blockHash
+    @return: Object -> TransactionOutput
+    '''
+    def calculate_trans_output(self, transOutput, cost, publicKey, blockHash):
+        result = []
+        returnCost = transOutput.amount - cost
+        transOutput = TransactionOutput(cost, 0, publicKey, blockHash)
+        returnTransOutput = TransactionOutput(returnCost, 1, publicKey, blockHash)
+        result.append(transOutput)
+        result.append(returnTransOutput)
+
+        return result
+
+class TransactionInput:
+    def __init__(self, tx_hash, tx_index, script_sig, block_hash):
+        """
+        tx_hash: ID giao dịch dùng để chi tiêu
+        tx_index: index của output trong array
+        script_sig: chữ kí chứng nhận quyền sở hữu
+        sequence: được dùng cho thời gian hóa hoặc bị vô hiệu hóa
+        (A Unix timestamp or block number) -> có thể sẽ bỏ trường này. 
+        block_hash: block chứa trans input
+        """
+        self.tx_hash = tx_hash
+        self.tx_index = tx_index
+        self.script_sig = script_sig
+        self.block_hash = block_hash
+        #self.sequence = sequence
+
+class TransactionOutput:
+    def __init__(self, amount, tx_index, public_key, block_hash):
+        """
+        value: giá trị cổ phiếu giao dịch
+        tx_index: index của transaction trong mảng
+        script_sign: kịch bản khóa.
+        """
+        self.amount = amount
+        self.tx_index = tx_index
+        self.public_key = public_key
+        self.block_hash = block_hash
+    
 

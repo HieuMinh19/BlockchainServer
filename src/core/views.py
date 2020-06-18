@@ -80,14 +80,7 @@ def create_transaction(request):
     ##start create data of new block
     newBlock = chain.generateNextBlock('i am Le Minh Hieu')
     print('HASH', newBlock.hashData)
-
-    
-    
-    
-    
-    
-    
-    
+      
     keyGenerate = BitcoinWallet()
     privateKey = keyGenerate.recover_private_key(request.POST['private_key'])
     signature = privateKey.sign_msg(request.POST['msg'].encode())

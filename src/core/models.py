@@ -10,6 +10,7 @@ import codecs
 import hashlib
 import ecdsa
 import eth_keys, os
+import MySQLdb
 class KeyGenerator:
     def __init__(self):
         self.POOL_SIZE = 256
@@ -148,7 +149,9 @@ class BitcoinWallet:
         return (private_key.public_key)
 
     def generate_signature(self, private_key, msg):
-        signature = private_key.sign_msg(msg)
+        private = eth_keys.keys.PrivateKey(private_key)
+        print(private)        
+        signature = private.sign_msg(msg)
         return signature
     #-------------end using eth_keys, os library-------------
 
@@ -165,8 +168,27 @@ class Blockchain:
         GenesisBlock = Block(0, "0", 1465154705, "my genesis block!!", "816534932c2b7154836da6afc367695e6337db8a921823784c14378abed4f7d7", 0)
         self.chain.append(GenesisBlock)
 
+    # def getLatestBlock(self):
+    #     return self.chain[-1]
+
     def getLatestBlock(self):
-        return self.chain[-1]
+        db_ = MySQLdb.connect(host="localhost", port=3306, user="root", passwd="",db="blockchain")
+        db_.autocommit(True)
+        db_cursor = db_.cursor()
+        sql = "SELECT * FROM blocks ORDER by id DESC limit 1"
+        db_cursor.execute(sql)
+        result = db_cursor.fetchall()
+        db_.commit() 
+
+        for row in result:
+            index = row[0]
+            previousHash = row[1]
+            timestamp = row[2]
+            transaction = row[3]
+            hashData = row[4]
+            nonce = row[5]
+        
+        return Block(index, previousHash, timestamp, transaction, hashData, nonce)
 
     def calculateHash(self, index, previousHash, timestamp, data, nonce):
         data = (str(index) + previousHash + 
@@ -188,7 +210,7 @@ class Blockchain:
         """
         nonce = 0 
         computed_hash = self.calculateHash(index, previousHash, timestamp, data, nonce)
-        while not computed_hash.startswith('0' * self.difficulty):
+        while not computed_hash.startswith('0' * self.get_difficulty):
             nonce += 1
             computed_hash = self.calculateHash(index, previousHash, timestamp, data, nonce)
 
@@ -199,7 +221,32 @@ class Blockchain:
             print("index: " + str(block.index))
             print("Transaction " + block.transaction)
 
+    def get_difficulty(self):
+        db_ = MySQLdb.connect(
+            host="localhost", 
+            port=3306, 
+            user="root", 
+            passwd="",
+            db="blockchain")
+        db_.autocommit(True)
+        db_cursor = db_.cursor()
+        sql = "SELECT difficult FROM configs limit 1"
+        db_cursor.execute(sql)
+        result = db_cursor.fetchall()
+        db_.commit() 
+        for row in result:
+            difficult = row[0]
+        
+        return difficult
+
 class Block:
+    # index = models.IntegerField()
+    # previousHash = models.CharField(max_length=255)
+    # timestamp = models.IntegerField()
+    # transaction = models.TextField()
+    # hashData = models.CharField(("hash of Block"), max_length=255)
+    # nonce = models.IntegerField()
+
     def __init__(self, index, previousHash, timestamp, transaction, hashData, nonce):
         """
         Constructor cho một `Block` class.
@@ -222,7 +269,6 @@ class Block:
         str(self.timestamp) + self.transaction + str(self.nonce)).encode('utf-8')
         self.hashData = sha256(data).hexdigest()
         return self.hashData
-
 
 class TransactionInput:
     def __init__(self, tx_hash, tx_index, script_sig):
@@ -248,3 +294,5 @@ class TransactionOutput:
         self.value = value
         self.tx_index = tx_index
         self.script_sign = script_sig
+
+

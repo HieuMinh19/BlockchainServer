@@ -223,8 +223,25 @@ class TransactionInput:
         self.block_hash = block_hash
         #self.sequence = sequence
 
+    def insert_to_db(self):
+        db_ = MySQLdb.connect(
+            host="localhost", 
+            port=3306, 
+            user="root", 
+            passwd="",
+            db="blockchain")
+        db_cursor = db_.cursor()
+        sql = "INSERT INTO trans_output (tx_hash, tx_index, strip_sign, block_hash) VALUE "
+        sql += "('%s', '%s', '%s', '%s')" % (
+            self.tx_hash,
+            self.tx_index,
+            self.script_sig,
+            self.block_hash
+        )
+        db_cursor.execute(sql)    
+
 class TransactionOutput:
-    def __init__(self, amount, tx_index, public_key, block_hash):
+    def __init__(self, amount, tx_index, public_key_from, block_hash, public_key_to):
         """
         value: giá trị cổ phiếu giao dịch
         tx_index: index của transaction trong mảng
@@ -232,7 +249,133 @@ class TransactionOutput:
         """
         self.amount = amount
         self.tx_index = tx_index
-        self.public_key = public_key
+        self.public_key_to = public_key_to
         self.block_hash = block_hash
+        self.public_key_from = public_key_from
+
+    def insert_to_db(self):
+        db_ = MySQLdb.connect(
+            host="localhost", 
+            port=3306, 
+            user="root", 
+            passwd="",
+            db="blockchain")
+        db_cursor = db_.cursor()
+        sql = "INSERT INTO trans_output (amount, tx_index, public_key_from, block_hash, public_key_to) VALUE "
+        sql += "('%s', '%s', '%s', '%s', '%s')" % (
+            self.amount,
+            self.tx_index,
+            self.public_key_from,
+            self.block_hash,
+            self.public_key_to
+        )
+        db_cursor.execute(sql)        
     
+
+class GlobalFunction:    
+    '''
+    create array transaction output and return uspend amount
+    @param: transOutput TransactionOutput Object
+    @param: float -> cost: total amount using
+    @param: String -> receiveUser: public Key receive user
+    @param: String -> selfHash: public Key your self
+    @param: String ->blockHash
+    @return: Array Object -> TransactionOutput
+    '''
+    def calculate_trans_output(self, transOutput, cost, receiveUser, selfHash, blockHash):
+        result = []
+        returnCost = transOutput.amount - cost
+        transOutput = TransactionOutput(cost, 0, selfHash, blockHash, receiveUser) # tx_index = 0
+        returnTransOutput = TransactionOutput(returnCost, 1, selfHash, blockHash, selfHash) #tx_index = 1
+        result.append(transOutput)
+        result.append(returnTransOutput)
+
+        return result
+
+    '''
+    check trans_out has been used?
+    @param: Integer txIndex,
+    @param:  String blockHash
+    @return boolean
+    '''
+    def is_using_trans_output(self, txIndex, blockHash):
+        db_ = MySQLdb.connect(
+            host="localhost", 
+            port=3306, 
+            user="root", 
+            passwd="", 
+            db="blockchain")
+        db_cursor = db_.cursor()
+        sql = 'SELECT * FROM trans_input WHERE tx_index = ' 
+        sql += '"' + str(txIndex) + '"'
+        sql += ' AND tx_hash = ' +  '"' + str(blockHash) + '"'
+        sql += " LIMIT 1"
+        print(sql)
+        db_cursor.execute(sql)
+
+        if(db_cursor.rowcount):
+            return True
+        
+        return False
+
+    '''
+    get available transaction output
+    @params: Integer amount
+    @params: Array Object arrTransOutput
+    @return Array  
+    '''
+    def available_trans_output(self, amount, arrTransOutput):
+        arrResult = []
+        globalFunc = GlobalFunction()        
+        
+        # init value
+        index = 0
+        totalAmount = arrTransOutput[index].amount
+        arrResult.append(arrResult[index])        
+        while(totalAmount <= amount):
+            txIndex = arrTransOutput[index].tx_index
+            blockHash = arrTransOutput[index].block_hash
+            if(globalFunc.is_using_trans_output(txIndex, blockHash) == False):
+                index += 1
+                totalAmount += arrTransOutput[index].amount
+                arrResult.append(arrResult[index])
+
+        return arrResult
+
+    '''
+    get all transaction output from DB (used and un-use)
+    @parmas: signature Object
+    @params: msg String
+    @params: amount Integer
+    @return: Array Transaction output
+    '''
+    def get_trans_output_by_sign(self, signature, msg, amount):
+        arrTransOutput = []
+        publicKey = signature.recover_public_key_from_msg(msg)
+        strPublicKey = str(publicKey)[2:]
+        db_ = MySQLdb.connect(
+            host="localhost", 
+            port=3306, 
+            user="root", 
+            passwd="", 
+            db="blockchain")
+        db_cursor = db_.cursor()
+        sql = 'SELECT * FROM trans_output WHERE public_key = '
+        sql += '"'
+        sql += strPublicKey
+        sql += '"'
+        db_cursor.execute(sql)
+        result = db_cursor.fetchall()
+        if(db_cursor.rowcount):    
+            for row in result:
+                #id = row[0]
+                totalAmount = row[1]
+                txIndex = row[2]
+                publicKeyFrom = row[3]
+                blockHash = row[4]
+                publicKeyTo = row[5]
+                transOutput = TransactionOutput(totalAmount, txIndex, publicKeyFrom, blockHash, publicKeyTo)
+                arrTransOutput.append(transOutput)
+
+        return arrTransOutput
 

@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.parsers import JSONParser 
 from rest_framework.decorators import api_view
-from .models import BitcoinWallet, Blockchain, Block
+from .models import BitcoinWallet, Blockchain, Block, GlobalFunction, TransactionInput, TransactionOutput
 import eth_keys, os
 import binascii
 
@@ -74,17 +74,25 @@ def test_view():
 @api_view(['POST'])
 def create_transaction(request):
     chain = Blockchain()
-    lastBlock = chain.getLatestBlock()
-    print('LAST BLOCK', lastBlock.index)
+    globalFunc = GlobalFunction()
+    message = request.POST['private_key']
+    ## start create data of new block
+    print('Message', request.POST['msg'])
+    endcodeMsg = request.POST['msg'].encode()
+    newBlock = chain.generateNextBlock('I am Hieu Le')
+    print('NEW BLOCK', newBlock.hashData)
 
-    ##start create data of new block
-    newBlock = chain.generateNextBlock('i am Le Minh Hieu')
-    print('HASH', newBlock.hashData)
-      
     keyGenerate = BitcoinWallet()
     privateKey = keyGenerate.recover_private_key(request.POST['private_key'])
     signature = privateKey.sign_msg(request.POST['msg'].encode())
+    publicKeyFrom = signature.recover_public_key_from_msg(request.POST['msg'].encode())
+   
+    allOutput = globalFunc.get_trans_output_by_sign(signature, request.POST['msg'].encode(), request.POST['amount'])
+    availableOutput = globalFunc.available_trans_output(request.POST['amount'], allOutput)
+    print(availableOutput)
     result = {
-        'signature': str(signature)
+        "abc": "thanh cong"
     }
-    return JsonResponse(result)
+
+    return JsonResponse(result, safe=False)
+

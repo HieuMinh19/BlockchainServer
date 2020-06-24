@@ -12,6 +12,7 @@ import ecdsa
 import eth_keys, os
 import MySQLdb
 import binascii
+from hashlib import sha256
 
 
 class BitcoinWallet:
@@ -88,12 +89,14 @@ class Blockchain:
         """
         Hàm thử các giá trị khác nhau của nonce để lấy giá trị băm thỏa mãn
         """
-        nonce = 0 
+        #nonce = 0 
         computed_hash = self.calculateHash(index, previousHash, timestamp, data, nonce)
-        while not computed_hash.startswith('0' * self.get_difficulty):
+        while not computed_hash.startswith('0' * self.get_difficulty()):
             nonce += 1
             computed_hash = self.calculateHash(index, previousHash, timestamp, data, nonce)
-
+            print('NONCE', nonce)
+        # print('NONCE', nonce)
+        # return True
         return Block(index, previousHash, timestamp, data, computed_hash, nonce)
 
     def display_chain(self):
@@ -167,7 +170,7 @@ class Block:
             passwd="", 
             db="blockchain")
         db_cursor = db_.cursor()
-        sql = 'SELECT * FROM trans_output WHERE public_key = '
+        sql = 'SELECT * FROM trans_output WHERE public_key_to = '
         sql += '"'
         sql += strPublicKey
         sql += '"'
@@ -360,7 +363,7 @@ class GlobalFunction:
             passwd="", 
             db="blockchain")
         db_cursor = db_.cursor()
-        sql = 'SELECT * FROM trans_output WHERE public_key = '
+        sql = 'SELECT * FROM trans_output WHERE public_key_to = '
         sql += '"'
         sql += strPublicKey
         sql += '"'

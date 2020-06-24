@@ -79,8 +79,13 @@ def create_transaction(request):
     ## start create data of new block
     print('Message', request.POST['msg'])
     endcodeMsg = request.POST['msg'].encode()
-    newBlock = chain.generateNextBlock('I am Hieu Le')
+    newBlock = chain.generateNextBlock(request.POST['msg'])
     print('NEW BLOCK', newBlock.hashData)
+    # result = {
+    #     "abc": "thanh cong",
+    #     'endsa': str(endcodeMsg)
+    # } 
+    # return JsonResponse(result)
 
     keyGenerate = BitcoinWallet()
     privateKey = keyGenerate.recover_private_key(request.POST['private_key'])
@@ -89,7 +94,7 @@ def create_transaction(request):
    
     allOutput = globalFunc.get_trans_output_by_sign(signature, request.POST['msg'].encode(), request.POST['amount'])
     availableOutput = globalFunc.available_trans_output(request.POST['amount'], allOutput)
-    print(availableOutput)
+    print('AVALIABLE', availableOutput)
     result = {
         "abc": "thanh cong"
     }

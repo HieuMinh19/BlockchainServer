@@ -81,20 +81,32 @@ def create_transaction(request):
     endcodeMsg = request.POST['msg'].encode()
     newBlock = chain.generateNextBlock(request.POST['msg'])
     print('NEW BLOCK', newBlock.hashData)
-    # result = {
-    #     "abc": "thanh cong",
-    #     'endsa': str(endcodeMsg)
-    # } 
-    # return JsonResponse(result)
-
     keyGenerate = BitcoinWallet()
     privateKey = keyGenerate.recover_private_key(request.POST['private_key'])
     signature = privateKey.sign_msg(request.POST['msg'].encode())
     publicKeyFrom = signature.recover_public_key_from_msg(request.POST['msg'].encode())
-   
     allOutput = globalFunc.get_trans_output_by_sign(signature, request.POST['msg'].encode(), request.POST['amount'])
-    availableOutput = globalFunc.available_trans_output(request.POST['amount'], allOutput)
-    print('AVALIABLE', availableOutput)
+    availableOutput = globalFunc.available_trans_output(float(request.POST['amount']), allOutput)
+    blockHash = newBlock.hashData
+    totalAmount = 0
+    for output in availableOutput:
+        totalAmount += output.amount
+        txHash = output.block_hash
+        txIndex = output.tx_index
+        scriptSig = str(signature)
+        transInput = TransactionInput(txHash, txIndex, scriptSig, blockHash)
+        print('TX_INDEX', transInput.tx_index)
+        transInput.insert_to_db()
+
+    arrTransOutput = globalFunc.calculate_trans_output(totalAmount, float(request.POST['amount']),
+        str(request.POST['public_key']), str(publicKeyFrom)[2:], newBlock.hashData)
+
+    
+    for output in arrTransOutput:
+        output.insert_to_db()
+    
+
+
     result = {
         "abc": "thanh cong"
     }

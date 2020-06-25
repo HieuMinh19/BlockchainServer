@@ -234,13 +234,14 @@ class TransactionInput:
             passwd="",
             db="blockchain")
         db_cursor = db_.cursor()
-        sql = "INSERT INTO trans_output (tx_hash, tx_index, strip_sign, block_hash) VALUE "
+        sql = "INSERT INTO trans_input (tx_hash, tx_index, strip_sign, block_hash) VALUE "
         sql += "('%s', '%s', '%s', '%s')" % (
             self.tx_hash,
             self.tx_index,
             self.script_sig,
             self.block_hash
         )
+        print('SQL', sql)
         db_cursor.execute(sql)    
 
 class TransactionOutput:
@@ -272,22 +273,23 @@ class TransactionOutput:
             self.block_hash,
             self.public_key_to
         )
+        print('SQL2', sql)
         db_cursor.execute(sql)        
     
 
 class GlobalFunction:    
     '''
     create array transaction output and return uspend amount
-    @param: transOutput TransactionOutput Object
+    @param: float -> totalCost
     @param: float -> cost: total amount using
     @param: String -> receiveUser: public Key receive user
     @param: String -> selfHash: public Key your self
     @param: String ->blockHash
     @return: Array Object -> TransactionOutput
     '''
-    def calculate_trans_output(self, transOutput, cost, receiveUser, selfHash, blockHash):
+    def calculate_trans_output(self, totalCost, cost, receiveUser, selfHash, blockHash):
         result = []
-        returnCost = transOutput.amount - cost
+        returnCost = totalCost - cost
         transOutput = TransactionOutput(cost, 0, selfHash, blockHash, receiveUser) # tx_index = 0
         returnTransOutput = TransactionOutput(returnCost, 1, selfHash, blockHash, selfHash) #tx_index = 1
         result.append(transOutput)
@@ -334,14 +336,15 @@ class GlobalFunction:
         # init value
         index = 0
         totalAmount = arrTransOutput[index].amount
-        arrResult.append(arrResult[index])        
+        arrResult.append(arrTransOutput[index])    
+        print()
         while(totalAmount <= amount):
             txIndex = arrTransOutput[index].tx_index
             blockHash = arrTransOutput[index].block_hash
             if(globalFunc.is_using_trans_output(txIndex, blockHash) == False):
                 index += 1
                 totalAmount += arrTransOutput[index].amount
-                arrResult.append(arrResult[index])
+                arrResult.append(arrTransOutput[index])
 
         return arrResult
 
@@ -369,14 +372,14 @@ class GlobalFunction:
         sql += '"'
         db_cursor.execute(sql)
         result = db_cursor.fetchall()
-        if(db_cursor.rowcount):    
+        if(db_cursor.rowcount > 0):    
             for row in result:
                 #id = row[0]
                 totalAmount = row[1]
                 txIndex = row[2]
-                publicKeyFrom = row[3]
+                publicKeyTo = row[3]
                 blockHash = row[4]
-                publicKeyTo = row[5]
+                publicKeyFrom = row[5]
                 transOutput = TransactionOutput(totalAmount, txIndex, publicKeyFrom, blockHash, publicKeyTo)
                 arrTransOutput.append(transOutput)
 

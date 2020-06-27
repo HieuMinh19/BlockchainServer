@@ -242,7 +242,12 @@ class TransactionInput:
             self.block_hash
         )
         print('SQL', sql)
-        db_cursor.execute(sql)    
+        try:
+            db_cursor.execute(sql)
+            db_.commit()
+        except (MySQLdb.Error, MySQLdb.Warning) as e:
+            print('ERROR', e)
+            return None    
 
 class TransactionOutput:
     def __init__(self, amount, tx_index, public_key_from, block_hash, public_key_to):
@@ -274,7 +279,12 @@ class TransactionOutput:
             self.public_key_to
         )
         print('SQL2', sql)
-        db_cursor.execute(sql)        
+        try:
+            db_cursor.execute(sql)
+            db_.commit()
+        except (MySQLdb.Error, MySQLdb.Warning) as e:
+            print('ERROR', e)
+            return None    
     
 
 class GlobalFunction:    
@@ -384,4 +394,42 @@ class GlobalFunction:
                 arrTransOutput.append(transOutput)
 
         return arrTransOutput
+
+    '''
+    Kiểm tra số dư tài khoản user
+    @params: string publicKey
+    @return Array Transaction output
+    '''
+    def get_balance_by_user(self, publicKey):
+        resultBalance = 0
+        db_ = MySQLdb.connect(
+            host="localhost", 
+            port=3306, 
+            user="root", 
+            passwd="", 
+            db="blockchain")
+        db_cursor = db_.cursor()
+        sql = 'SELECT * FROM trans_output WHERE public_key_to = '
+        sql += '"'
+        sql += publicKey
+        sql += '"'
+        db_cursor.execute(sql)
+        result = db_cursor.fetchall()
+        if(db_cursor.rowcount > 0):    
+            for row in result:
+                totalAmount = row[1]
+                txIndex = row[2]
+                publicKeyTo = row[3]
+                blockHash = row[4]
+                publicKeyFrom = row[5]
+                if(self.is_using_trans_output(txIndex, blockHash)):
+                    resultBalance += totalAmount
+
+        return resultBalance
+
+
+
+
+
+
 

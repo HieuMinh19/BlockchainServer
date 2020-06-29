@@ -422,7 +422,7 @@ class GlobalFunction:
                 publicKeyTo = row[3]
                 blockHash = row[4]
                 publicKeyFrom = row[5]
-                if(self.is_using_trans_output(txIndex, blockHash)):
+                if(self.is_using_trans_output(txIndex, blockHash) == False):
                     resultBalance += totalAmount
 
         return resultBalance

@@ -113,3 +113,13 @@ def create_transaction(request):
 
     return JsonResponse(result, safe=False)
 
+@api_view(['GET'])
+def get_balance(request):
+    publicKey = request.GET['public_key']
+    globalFunc = GlobalFunction()
+    balance = globalFunc.get_balance_by_user(publicKey)
+    result ={
+        "balance": balance
+    }
+
+    return JsonResponse(result)

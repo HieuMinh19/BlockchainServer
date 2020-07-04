@@ -24,9 +24,11 @@ def register(request):
     public_key = generator_class.generate_public_key(private_key)
     #address = generator_class.public_to_address(public_key)
     response = {
-        'private_key': str(private_key)[2:],
-        'public_key': str(public_key)[2:],      #convert to string and remove 0x
-        #'address': str(address)
+        'code': 200,
+        'data': {
+            'private_key': str(private_key)[2:],
+            'public_key': str(public_key)[2:],      #convert to string and remove 0x
+        }
     }
    
     return JsonResponse(response)
@@ -101,14 +103,12 @@ def create_transaction(request):
     arrTransOutput = globalFunc.calculate_trans_output(totalAmount, float(request.POST['amount']),
         str(request.POST['public_key']), str(publicKeyFrom)[2:], newBlock.hashData)
 
-    
     for output in arrTransOutput:
         output.insert_to_db()
     
-
-
     result = {
-        "abc": "thanh cong"
+        "code": 200,
+        "data": "success"
     }
 
     return JsonResponse(result, safe=False)

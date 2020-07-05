@@ -90,6 +90,10 @@ def create_transaction(request):
     allOutput = globalFunc.get_trans_output_by_sign(signature, request.POST['msg'].encode(), request.POST['amount'])
     availableOutput = globalFunc.available_trans_output(float(request.POST['amount']), allOutput)
     blockHash = newBlock.hashData
+    if(availableOutput.count > 0):
+        #just insert into db when has trans_output
+        newBlock.insert_to_db()
+    
     totalAmount = 0
     for output in availableOutput:
         totalAmount += output.amount
@@ -97,8 +101,9 @@ def create_transaction(request):
         txIndex = output.tx_index
         scriptSig = str(signature)
         transInput = TransactionInput(txHash, txIndex, scriptSig, blockHash)
-        print('TX_INDEX', transInput.tx_index)
         transInput.insert_to_db()
+        print('TOTAL AMOUNT', totalAmount)
+    
 
     arrTransOutput = globalFunc.calculate_trans_output(totalAmount, float(request.POST['amount']),
         str(request.POST['public_key']), str(publicKeyFrom)[2:], newBlock.hashData)

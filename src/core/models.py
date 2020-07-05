@@ -210,6 +210,30 @@ class Block:
 
         return result
 
+    def insert_to_db(self):
+        db_ = MySQLdb.connect(
+            host="localhost", 
+            port=3306, 
+            user="root", 
+            passwd="",
+            db="blockchain")
+        db_cursor = db_.cursor()
+        sql = "INSERT INTO blocks (previous_hash, `timestamp`, `transaction`, hash_data, nonce) VALUE "
+        sql += "('%s', '%s', '%s', '%s', '%s')" % (
+            self.previousHash,
+            self.timestamp,
+            self.transaction,
+            self.hashData,
+            self.nonce
+        )
+        try:
+            db_cursor.execute(sql)
+            db_.commit()
+        except (MySQLdb.Error, MySQLdb.Warning) as e:
+            print('ERROR', e)
+            return None    
+
+
 class TransactionInput:
     def __init__(self, tx_hash, tx_index, script_sig, block_hash):
         """
@@ -325,7 +349,6 @@ class GlobalFunction:
         sql += '"' + str(txIndex) + '"'
         sql += ' AND tx_hash = ' +  '"' + str(blockHash) + '"'
         sql += " LIMIT 1"
-        print(sql)
         db_cursor.execute(sql)
 
         if(db_cursor.rowcount):
@@ -346,8 +369,16 @@ class GlobalFunction:
         # init value
         index = 0
         totalAmount = arrTransOutput[index].amount
-        arrResult.append(arrTransOutput[index])    
-        print()
+        
+        if(totalAmount >= amount and 
+            globalFunc.is_using_trans_output(arrTransOutput[0].tx_index, arrTransOutput[0].block_hash) == False):
+            arrResult.append(arrTransOutput[0])
+            return arrResult
+        else:
+            #Loại bỏ phần tử đầu tiên của mãng do đã được dùng
+            index += 1
+            totalAmount = 0
+
         while(totalAmount <= amount):
             txIndex = arrTransOutput[index].tx_index
             blockHash = arrTransOutput[index].block_hash

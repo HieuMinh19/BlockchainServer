@@ -123,7 +123,7 @@ def get_balance(request):
     publicKey = request.GET['public_key']
     globalFunc = GlobalFunction()
     balance = globalFunc.get_balance_by_user(publicKey)
-    result ={
+    result = {
         "balance": balance
     }
 

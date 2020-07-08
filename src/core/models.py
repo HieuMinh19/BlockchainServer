@@ -302,7 +302,6 @@ class TransactionOutput:
             self.block_hash,
             self.public_key_to
         )
-        print('SQL2', sql)
         try:
             db_cursor.execute(sql)
             db_.commit()

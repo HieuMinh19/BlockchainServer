@@ -210,6 +210,30 @@ class Block:
 
         return result
 
+    def insert_to_db(self):
+        db_ = MySQLdb.connect(
+            host="localhost", 
+            port=3306, 
+            user="root", 
+            passwd="",
+            db="blockchain")
+        db_cursor = db_.cursor()
+        sql = "INSERT INTO blocks (previous_hash, `timestamp`, `transaction`, hash_data, nonce) VALUE "
+        sql += "('%s', '%s', '%s', '%s', '%s')" % (
+            self.previousHash,
+            self.timestamp,
+            self.transaction,
+            self.hashData,
+            self.nonce
+        )
+        try:
+            db_cursor.execute(sql)
+            db_.commit()
+        except (MySQLdb.Error, MySQLdb.Warning) as e:
+            print('ERROR', e)
+            return None    
+
+
 class TransactionInput:
     def __init__(self, tx_hash, tx_index, script_sig, block_hash):
         """
@@ -234,14 +258,20 @@ class TransactionInput:
             passwd="",
             db="blockchain")
         db_cursor = db_.cursor()
-        sql = "INSERT INTO trans_output (tx_hash, tx_index, strip_sign, block_hash) VALUE "
+        sql = "INSERT INTO trans_input (tx_hash, tx_index, strip_sign, block_hash) VALUE "
         sql += "('%s', '%s', '%s', '%s')" % (
             self.tx_hash,
             self.tx_index,
             self.script_sig,
             self.block_hash
         )
-        db_cursor.execute(sql)    
+        print('SQL', sql)
+        try:
+            db_cursor.execute(sql)
+            db_.commit()
+        except (MySQLdb.Error, MySQLdb.Warning) as e:
+            print('ERROR', e)
+            return None    
 
 class TransactionOutput:
     def __init__(self, amount, tx_index, public_key_from, block_hash, public_key_to):
@@ -272,22 +302,27 @@ class TransactionOutput:
             self.block_hash,
             self.public_key_to
         )
-        db_cursor.execute(sql)        
+        try:
+            db_cursor.execute(sql)
+            db_.commit()
+        except (MySQLdb.Error, MySQLdb.Warning) as e:
+            print('ERROR', e)
+            return None    
     
 
 class GlobalFunction:    
     '''
     create array transaction output and return uspend amount
-    @param: transOutput TransactionOutput Object
+    @param: float -> totalCost
     @param: float -> cost: total amount using
     @param: String -> receiveUser: public Key receive user
     @param: String -> selfHash: public Key your self
     @param: String ->blockHash
     @return: Array Object -> TransactionOutput
     '''
-    def calculate_trans_output(self, transOutput, cost, receiveUser, selfHash, blockHash):
+    def calculate_trans_output(self, totalCost, cost, receiveUser, selfHash, blockHash):
         result = []
-        returnCost = transOutput.amount - cost
+        returnCost = totalCost - cost
         transOutput = TransactionOutput(cost, 0, selfHash, blockHash, receiveUser) # tx_index = 0
         returnTransOutput = TransactionOutput(returnCost, 1, selfHash, blockHash, selfHash) #tx_index = 1
         result.append(transOutput)
@@ -313,7 +348,6 @@ class GlobalFunction:
         sql += '"' + str(txIndex) + '"'
         sql += ' AND tx_hash = ' +  '"' + str(blockHash) + '"'
         sql += " LIMIT 1"
-        print(sql)
         db_cursor.execute(sql)
 
         if(db_cursor.rowcount):
@@ -334,14 +368,23 @@ class GlobalFunction:
         # init value
         index = 0
         totalAmount = arrTransOutput[index].amount
-        arrResult.append(arrResult[index])        
+        
+        if(totalAmount >= amount and 
+            globalFunc.is_using_trans_output(arrTransOutput[0].tx_index, arrTransOutput[0].block_hash) == False):
+            arrResult.append(arrTransOutput[0])
+            return arrResult
+        else:
+            #Loại bỏ phần tử đầu tiên của mãng do đã được dùng
+            index += 1
+            totalAmount = 0
+
         while(totalAmount <= amount):
             txIndex = arrTransOutput[index].tx_index
             blockHash = arrTransOutput[index].block_hash
             if(globalFunc.is_using_trans_output(txIndex, blockHash) == False):
                 index += 1
                 totalAmount += arrTransOutput[index].amount
-                arrResult.append(arrResult[index])
+                arrResult.append(arrTransOutput[index])
 
         return arrResult
 
@@ -369,16 +412,54 @@ class GlobalFunction:
         sql += '"'
         db_cursor.execute(sql)
         result = db_cursor.fetchall()
-        if(db_cursor.rowcount):    
+        if(db_cursor.rowcount > 0):    
             for row in result:
                 #id = row[0]
                 totalAmount = row[1]
                 txIndex = row[2]
-                publicKeyFrom = row[3]
+                publicKeyTo = row[3]
                 blockHash = row[4]
-                publicKeyTo = row[5]
+                publicKeyFrom = row[5]
                 transOutput = TransactionOutput(totalAmount, txIndex, publicKeyFrom, blockHash, publicKeyTo)
                 arrTransOutput.append(transOutput)
 
         return arrTransOutput
+
+    '''
+    Kiểm tra số dư tài khoản user
+    @params: string publicKey
+    @return Array Transaction output
+    '''
+    def get_balance_by_user(self, publicKey):
+        resultBalance = 0
+        db_ = MySQLdb.connect(
+            host="localhost", 
+            port=3306, 
+            user="root", 
+            passwd="", 
+            db="blockchain")
+        db_cursor = db_.cursor()
+        sql = 'SELECT * FROM trans_output WHERE public_key_to = '
+        sql += '"'
+        sql += publicKey
+        sql += '"'
+        db_cursor.execute(sql)
+        result = db_cursor.fetchall()
+        if(db_cursor.rowcount > 0):    
+            for row in result:
+                totalAmount = row[1]
+                txIndex = row[2]
+                publicKeyTo = row[3]
+                blockHash = row[4]
+                publicKeyFrom = row[5]
+                if(self.is_using_trans_output(txIndex, blockHash) == False):
+                    resultBalance += totalAmount
+
+        return resultBalance
+
+
+
+
+
+
 

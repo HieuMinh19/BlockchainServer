@@ -18,11 +18,22 @@ def get(self, request, *args, **kwags):
     return JsonResponse(data)
 
 def register(request):
-    #params = request.GET['random_string']
+    request.GET['user_id']
     generator_class = BitcoinWallet()
     private_key = generator_class.generate_private_key()
     public_key = generator_class.generate_public_key(private_key)
     #address = generator_class.public_to_address(public_key)
+    db_ = MySQLdb.connect(
+        host="localhost", 
+        port=3306, 
+        user="root", 
+        passwd="", 
+        db="blockchain")
+    db_cursor = db_.cursor()
+    sql = 'UPDATE users SET `public_key` =' + "`" + public_key + "`"  
+    sql += 'WHERE id = ' + "`" + request.GET['user_id'] + "`"
+    db_cursor.execute(sql)
+    db_.commit()
     response = {
         'code': 200,
         'data': {
@@ -88,9 +99,7 @@ def create_transaction(request):
     signature = privateKey.sign_msg(request.data['msg'].encode())
     publicKeyFrom = signature.recover_public_key_from_msg(request.data['msg'].encode())
     allOutput = globalFunc.get_trans_output_by_sign(signature, request.data['msg'].encode(), request.data['amount'])
-    print('ALL OUTPUT', allOutput)
     availableOutput = globalFunc.available_trans_output(float(request.data['amount']), allOutput)
-    print('AVALIABLE OUTPUT', availableOutput)
     blockHash = newBlock.hashData
     #if(availableOutput.count > 0):
         #just insert into db when has trans_output

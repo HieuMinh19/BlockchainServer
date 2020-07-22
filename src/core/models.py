@@ -379,12 +379,15 @@ class GlobalFunction:
             totalAmount = 0
 
         while(totalAmount <= amount):
+            print('BLOCK HASH', arrTransOutput[index].block_hash)
             txIndex = arrTransOutput[index].tx_index
             blockHash = arrTransOutput[index].block_hash
+            
             if(globalFunc.is_using_trans_output(txIndex, blockHash) == False):
-                index += 1
                 totalAmount += arrTransOutput[index].amount
                 arrResult.append(arrTransOutput[index])
+            
+            index += 1
 
         return arrResult
 

@@ -52,7 +52,7 @@ def get_last_block(request):
 # def get_signature(request):
 #     if request.method == "POST":
 #         wallet = BitcoinWallet()
-#         signature = wallet.generate_signature(request.POST['private_key'], request.POST['msg'])
+#         signature = wallet.generate_signature(9trx['private_key'], request.POST['msg'])
 #         #print('REQUEST', request.post['random_string'])   
 #         data = {
 #             'code': 200,
@@ -77,22 +77,24 @@ def test_view():
 def create_transaction(request):
     chain = Blockchain()
     globalFunc = GlobalFunction()
-    message = request.POST['private_key']
+    message = request.data['private_key']
     ## start create data of new block
-    print('Message', request.POST['msg'])
-    endcodeMsg = request.POST['msg'].encode()
-    newBlock = chain.generateNextBlock(request.POST['msg'])
+    print('Message', request.data['msg'])
+    endcodeMsg = request.data['msg'].encode()
+    newBlock = chain.generateNextBlock(request.data['msg'])
     print('NEW BLOCK', newBlock.hashData)
     keyGenerate = BitcoinWallet()
-    privateKey = keyGenerate.recover_private_key(request.POST['private_key'])
-    signature = privateKey.sign_msg(request.POST['msg'].encode())
-    publicKeyFrom = signature.recover_public_key_from_msg(request.POST['msg'].encode())
-    allOutput = globalFunc.get_trans_output_by_sign(signature, request.POST['msg'].encode(), request.POST['amount'])
-    availableOutput = globalFunc.available_trans_output(float(request.POST['amount']), allOutput)
+    privateKey = keyGenerate.recover_private_key(request.data['private_key'])
+    signature = privateKey.sign_msg(request.data['msg'].encode())
+    publicKeyFrom = signature.recover_public_key_from_msg(request.data['msg'].encode())
+    allOutput = globalFunc.get_trans_output_by_sign(signature, request.data['msg'].encode(), request.data['amount'])
+    print('ALL OUTPUT', allOutput)
+    availableOutput = globalFunc.available_trans_output(float(request.data['amount']), allOutput)
+    print('AVALIABLE OUTPUT', availableOutput)
     blockHash = newBlock.hashData
-    if(availableOutput.count > 0):
+    #if(availableOutput.count > 0):
         #just insert into db when has trans_output
-        newBlock.insert_to_db()
+    newBlock.insert_to_db()
     
     totalAmount = 0
     for output in availableOutput:
@@ -105,8 +107,8 @@ def create_transaction(request):
         print('TOTAL AMOUNT', totalAmount)
     
 
-    arrTransOutput = globalFunc.calculate_trans_output(totalAmount, float(request.POST['amount']),
-        str(request.POST['public_key']), str(publicKeyFrom)[2:], newBlock.hashData)
+    arrTransOutput = globalFunc.calculate_trans_output(totalAmount, float(request.data['amount']),
+        str(request.data['public_key']), str(publicKeyFrom)[2:], newBlock.hashData)
 
     for output in arrTransOutput:
         output.insert_to_db()
